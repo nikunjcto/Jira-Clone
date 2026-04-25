@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import api, { formatApiError } from "@/lib/api";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, IssueTypeIcon, PriorityIcon, StatusBadge } from "@/components/Visuals";
 import { Trash, Paperclip, X, DownloadSimple } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -85,6 +85,7 @@ export default function IssueDialog({ open, onClose, issueId, users, sprints, is
         return (
             <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
                 <DialogContent className="border border-[#111] bg-white !rounded-none p-6 sm:max-w-3xl">
+                    <DialogTitle className="sr-only">Loading issue</DialogTitle>
                     <div className="font-mono text-sm">Loading…</div>
                 </DialogContent>
             </Dialog>
@@ -96,6 +97,8 @@ export default function IssueDialog({ open, onClose, issueId, users, sprints, is
     return (
         <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
             <DialogContent className="border border-[#111] bg-white !rounded-none p-0 shadow-[6px_6px_0_0_#111] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogTitle className="sr-only">{issue.key} — {issue.title}</DialogTitle>
+                <DialogDescription className="sr-only">Issue detail dialog with comments, activity log and attachments.</DialogDescription>
                 {/* Header */}
                 <div className="border-b border-[#111] px-5 py-3 flex items-center gap-3 bg-[#F4F4F0]">
                     <IssueTypeIcon type={issue.type} size={16} />
