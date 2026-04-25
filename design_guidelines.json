@@ -1,0 +1,81 @@
+{
+  "theme": "light",
+  "archetype": "4 - Swiss & High-Contrast (Brutalist Editorial)",
+  "vibe": "Industrial, architectural, high-density, highly legible, anti-fluff. Feels like a technical planner, an architect's blueprint, or a high-end IDE.",
+  "colors": {
+    "background": "#F4F4F0",
+    "surface": "#FFFFFF",
+    "primary": "#001AFF",
+    "primary_hover": "#0014CC",
+    "accent": "#FFD600",
+    "text_main": "#111111",
+    "text_muted": "#555555",
+    "border": "#111111",
+    "error": "#E63946",
+    "success": "#00A86B",
+    "issue_types": {
+      "epic": "#FF6B00",
+      "story": "#00A86B",
+      "task": "#001AFF",
+      "bug": "#E63946"
+    }
+  },
+  "typography": {
+    "headings": {
+      "family": "Chivo, sans-serif",
+      "weights": ["400", "700", "900"],
+      "tracking": "tracking-tighter"
+    },
+    "body": {
+      "family": "IBM Plex Sans, sans-serif",
+      "weights": ["400", "500"]
+    },
+    "mono": {
+      "family": "IBM Plex Mono, monospace",
+      "usage": "Labels, issue IDs (e.g. PRJ-102), metadata, tiny tags, uppercase overlines."
+    }
+  },
+  "spacing_and_layout": {
+    "strategy": "Grid Borders (The 'Technical' Look). Expose the skeleton. Use border-collapse style layouts where possible.",
+    "corners": "rounded-none everywhere. Absolutely no soft rounded corners.",
+    "borders": "1px solid #111111 everywhere to separate sections. Columns in the kanban board should be separated by hard vertical border lines.",
+    "padding": "Generous internal padding (p-6, p-8) for main containers and dashboards, tight padding (p-2, p-3) for dense board cards.",
+    "shadows": "Hard geometric shadows ONLY. e.g., shadow-[4px_4px_0px_0px_rgba(17,17,17,1)] for hover states or active elements. No soft blur shadows."
+  },
+  "components": {
+    "buttons": "Square edges, bold uppercase text, hard borders. Primary button: bg-[#001AFF] text-white hover:bg-[#0014CC]. Secondary: bg-white text-[#111111] border border-[#111111] hover:bg-[#F4F4F0].",
+    "cards": "bg-white border border-[#111111] rounded-none. No default soft shadow, use hard shadow on hover.",
+    "inputs": "rounded-none border border-[#111111] bg-white focus:ring-0 focus:outline-none focus:border-[#001AFF] focus:shadow-[2px_2px_0px_0px_rgba(0,26,255,1)].",
+    "kanban_board": "Columns should span full height with border-r border-[#111111]. Board background: #F4F4F0. Task cards: bg-white border border-[#111111] hover:shadow-[4px_4px_0px_0px_rgba(17,17,17,1)] transition-all duration-200. Use Phosphor icons for issue types and priority.",
+    "badges": "Uppercase, IBM Plex Mono, border border-[#111111], px-2 py-0.5 text-xs.",
+    "sidebar": "border-r border-[#111111] bg-[#F4F4F0] or white. High contrast active states with black background and white text."
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "style": "Regular or Bold weight, technical, sharp."
+  },
+  "media": {
+    "images": {
+      "avatars": [
+        "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzA1NDc5N3ww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1769636929388-99eff95d3bf1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzA1NDc5N3ww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzA1NDc5N3ww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1762522926157-bcc04bf0b10a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzA1NDc5N3ww&ixlib=rb-4.1.0&q=85",
+        "https://images.pexels.com/photos/14589344/pexels-photo-14589344.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "https://images.pexels.com/photos/32721690/pexels-photo-32721690.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      ]
+    },
+    "login_background": "CSS dot grid or architectural line grid (e.g. background-image: radial-gradient(#111111 1px, transparent 1px) with background-size: 20px 20px). Do not use an image, use a CSS pattern to match the brutalist tech vibe."
+  },
+  "instructions_to_main_agent": [
+    "Build a highly functional Jira-style project management app using the Swiss Brutalist aesthetic.",
+    "Do NOT use generic rounded borders, soft box-shadows, or purple/teal colors. Everything should be geometric, sharp, with 1px black borders (border-[#111111]).",
+    "Use 'Chivo' for headings and 'IBM Plex Sans' for body. Use 'IBM Plex Mono' for small metadata like Issue IDs (e.g., PRJ-104) and tags.",
+    "For the Kanban Board, construct a strict grid where columns have a right border and the background is slightly off-white (#F4F4F0). Task cards must have solid #111111 borders and a hard shadow on hover (e.g., shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]).",
+    "All interactive elements MUST have data-testid attributes for testing.",
+    "Implement Authentication, Workspace Dashboard, Projects List, Kanban Board (drag-drop status), Backlog, Sprint Management, Issue details (dialogs with descriptions, comments, attachments), and Team management as requested.",
+    "Colors: Primary actions use Klein Blue (#001AFF). Use specific colors for issue types: Epic (#FF6B00), Story (#00A86B), Task (#001AFF), Bug (#E63946).",
+    "The UI should feel dense, technical, and objective, like a high-end IDE or architect's tool, while maintaining all standard SaaS functionality expected of a project management tool.",
+    "Ensure standard HTML/Tailwind for base structural components to maintain the distinctive styling, and customize Shadcn heavily (strip rounded corners, remove default soft shadows) where used for interactive elements."
+  ]
+}
