@@ -218,14 +218,26 @@ async def register(payload: RegisterIn, response: Response):
 
 
 def _color_for_email(email: str) -> str:
+    import hashlib
     palette = ["#001AFF", "#FF6B00", "#00A86B", "#E63946", "#7B2CBF", "#FFD600", "#111111", "#0E7C66"]
-    return palette[hash(email) % len(palette)]
+    h = int(hashlib.md5(email.encode("utf-8")).hexdigest(), 16)
+    return palette[h % len(palette)]
+
+
+def _client_ip(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for") or request.headers.get("X-Forwarded-For")
+    if xff:
+        return xff.split(",")[0].strip()
+    real = request.headers.get("x-real-ip")
+    if real:
+        return real.strip()
+    return request.client.host if request.client else "unknown"
 
 
 @api_router.post("/auth/login")
 async def login(payload: LoginIn, request: Request, response: Response):
     email = payload.email.lower()
-    ip = request.client.host if request.client else "unknown"
+    ip = _client_ip(request)
     identifier = f"{ip}:{email}"
 
     # brute force
@@ -453,11 +465,14 @@ async def list_project_issues(
 
 @api_router.post("/projects/{project_id}/issues")
 async def create_issue(project_id: str, payload: IssueIn, user: dict = Depends(get_current_user)):
-    project = await db.projects.find_one({"id": project_id})
+    project = await db.projects.find_one_and_update(
+        {"id": project_id},
+        {"$inc": {"issue_counter": 1}},
+        return_document=True,
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    new_counter = project.get("issue_counter", 0) + 1
-    await db.projects.update_one({"id": project_id}, {"$set": {"issue_counter": new_counter}})
+    new_counter = project["issue_counter"]
     issue_id = str(uuid.uuid4())
     issue = {
         "id": issue_id,
