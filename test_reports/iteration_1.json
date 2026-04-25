@@ -1,0 +1,73 @@
+{
+  "summary": "First backend testing iteration for TaskForge (Jira-style PM app). Wrote 36 pytest cases covering auth (register/login/me/refresh/logout/forgot-reset/brute-force), users CRUD with admin guards, projects CRUD, issues CRUD with auto-incrementing keys and activity logging, comments, attachments (upload/download/delete), full sprint lifecycle (start/complete) and search. 35/36 PASS. One real backend bug discovered: brute-force lockout never triggers in the deployed environment because the k8s ingress proxies through multiple pod IPs and the lockout key uses request.client.host (proxy IP) instead of the real client IP from X-Forwarded-For.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "Brute-force lockout (5-failure -> 15min) does NOT trigger in production. Identifier uses `request.client.host` (the kube-proxy IP), but the ingress load-balances across multiple backend pods so each pod sees ~half the attempts (counts 4 and 3 in DB for the same email). Neither pod ever reaches 5, so account is never locked. Verified via 7 consecutive failed logins that all returned 401. Mongo `db.login_attempts` shows two records for one email, one per proxy IP.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "On the 5th failure the code sets `locked_until` AND resets `count` to 0 in the same update, but still returns 401 for that 5th attempt instead of immediately returning 429 to the user. UX: attacker only sees lockout on attempt 6+. Acceptable but worth noting."
+      },
+      {
+        "endpoint": "POST /api/auth/forgot-password",
+        "issue": "Reset-token URL is only logged to stdout (`logger.info`); no email integration is wired (acknowledged as no-AI/no-email scope). For users this means password reset is unusable end-to-end without server log access."
+      },
+      {
+        "endpoint": "DELETE /api/issues/{id}",
+        "issue": "Any authenticated member can delete any issue (no ownership / admin check). For a Jira-style app this should likely be reporter/assignee/admin. Same for PATCH /issues."
+      },
+      {
+        "endpoint": "POST /api/sprints/{id}/start, /complete, DELETE /api/sprints/{id}, PATCH /api/projects/{id}",
+        "issue": "No admin / project-lead authorization — any logged-in member can start/complete/delete sprints and edit projects."
+      },
+      {
+        "endpoint": "POST /api/projects/{id}/issues",
+        "issue": "Issue counter increment is not atomic (find -> +1 -> set). Under concurrent creates this can produce duplicate keys (e.g., two ACME-3). Consider $inc or findOneAndUpdate."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "FIX brute-force identifier to use real client IP: read `X-Forwarded-For` (first hop) or `X-Real-IP`, fall back to request.client.host. Without this, the lockout protection is effectively disabled in the deployed environment.",
+    "Add authorization guards to mutating issue/sprint/project endpoints (delete/update). Currently any member can delete any issue or sprint.",
+    "Make issue key generation atomic via findOneAndUpdate with $inc on projects.issue_counter to avoid duplicate keys under concurrency.",
+    "Optional: return 429 immediately on the 5th failed login (not the 6th)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~790 lines and includes models, helpers, and all routers. Recommend splitting into routers/ (auth, users, projects, issues, sprints, attachments, search) and a models.py for maintainability.",
+    "Brute force key uses request.client.host -- behind a load balancer / k8s ingress this is the proxy IP, not the user's. Confirmed broken in this deploy.",
+    "_color_for_email uses Python's built-in hash() which is randomized per process (PYTHONHASHSEED). Avatar color will differ across pods/restarts for the same email. Use a stable hash (e.g. hashlib.md5).",
+    "Issue counter increment is not atomic (read-then-write). Use $inc with findOneAndUpdate.",
+    "Activity log writes raw old/new values into `detail` string (e.g. assignee_id UUIDs). Frontend will need extra work to render meaningful messages. Consider storing field/from/to as structured fields.",
+    "No authorization on PATCH/DELETE issues, sprint start/complete/delete, project PATCH -- any authenticated member can mutate anything. Add reporter/admin/lead guards.",
+    "set_auth_cookies uses secure=False — fine for preview, but should be True in production behind HTTPS.",
+    "Email field stored in lowercase on save but EmailStr does not coerce -- ensure all read paths also lowercase before lookup (already done in login/register; users list returns mixed case if any inserted directly).",
+    "No pagination on /api/users (1000), /api/issues (5000), /api/projects (1000) — fine for MVP but should add skip/limit for scale.",
+    "CORS uses allow_origins='*' with allow_credentials=True. Browsers reject credentialed requests with wildcard origins; the frontend works because it is on the same domain via ingress, but if the FE is ever served from a separate origin, cookies will fail. Set explicit origin from FRONTEND_URL env.",
+    "Forgot-password leaks the reset token only into server logs — no email integration; password reset is non-functional for end users."
+  ],
+  "updated_files": [
+    "/app/backend/tests/__init__.py",
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "97% (35/36)", "frontend": "not tested (skipped per request)"},
+  "test_credentials": "admin@taskforge.dev / admin123 (auto-seeded). Verified working against external URL https://project-forge-168.preview.emergentagent.com.",
+  "seed_data_creation": "Tests create TEST_-prefixed users and disposable projects; project fixture cleans up via DELETE /api/projects/{id} (admin) which cascades issues/sprints. Some TEST_ users remain (admin add-member tests don't always delete) — harmless.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "External base URL = https://project-forge-168.preview.emergentagent.com (frontend/.env). Pytest file at /app/backend/tests/backend_test.py. Run: REACT_APP_BACKEND_URL=https://project-forge-168.preview.emergentagent.com python -m pytest backend/tests/backend_test.py -v. The brute-force test is the canary for the X-Forwarded-For fix; it should flip to PASS once main agent fixes the identifier. All other 35 tests are stable.",
+  "rca of the issue": "Brute-force lockout: The TaskForge cluster has at least 2 backend pod replicas behind a k8s ingress. `request.client.host` reflects the immediate TCP peer (the kube-proxy/pod IP), so successive curl calls land on different proxy IPs (e.g., 10.64.135.205 and 10.64.129.146 observed in db.login_attempts). The lockout identifier `f'{ip}:{email}'` therefore creates a separate counter per ingress hop. With requests round-robined, no single counter reaches 5, and the locked_until branch never executes. Reproduction: hit /api/auth/login 7 times with a wrong password for the same email -> all 7 return 401, and `db.login_attempts.find({identifier: /<email>/})` shows 2 docs with counts that sum to 7 but neither >=5. Mitigation: derive client IP from the X-Forwarded-For header (use the leftmost entry, with a safe fallback). Example: `xff = request.headers.get('x-forwarded-for'); ip = xff.split(',')[0].strip() if xff else (request.client.host if request.client else 'unknown')`. Optionally also set FastAPI/uvicorn `proxy_headers=True --forwarded-allow-ips='*'` if running behind a known trusted proxy."
+}
