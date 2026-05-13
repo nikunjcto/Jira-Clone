@@ -20,9 +20,17 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
 
 # ----------------------- Mongo -----------------------
-mongo_url = os.environ["MONGO_URL"]
+mongo_url = os.environ.get("MONGO_URL")
+db_name = os.environ.get("DB_NAME")
+jwt_secret = os.environ.get("JWT_SECRET")
+if not mongo_url:
+    raise RuntimeError("MONGO_URL is required")
+if not db_name:
+    raise RuntimeError("DB_NAME is required")
+if not jwt_secret:
+    raise RuntimeError("JWT_SECRET is required")
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+db = client[db_name]
 
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -38,6 +46,23 @@ JWT_ALGORITHM = "HS256"
 def get_jwt_secret() -> str:
     return os.environ["JWT_SECRET"]
 
+def _is_prod() -> bool:
+    if os.environ.get("RENDER_SERVICE_ID"):
+        return True
+    env = (os.environ.get("ENV") or os.environ.get("ENVIRONMENT") or "").lower()
+    return env in {"prod", "production"}
+
+
+def _cookie_settings() -> dict:
+    if _is_prod():
+        return {"secure": True, "samesite": "none"}
+    return {"secure": False, "samesite": "lax"}
+
+
+def _cors_origins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS", "")
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    return origins
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -69,8 +94,25 @@ def create_refresh_token(user_id: str) -> str:
 def set_auth_cookies(response: Response, user_id: str, email: str):
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
-    response.set_cookie("access_token", access, httponly=True, secure=False, samesite="lax", max_age=3600, path="/")
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    settings = _cookie_settings()
+    response.set_cookie(
+        "access_token",
+        access,
+        httponly=True,
+        secure=settings["secure"],
+        samesite=settings["samesite"],
+        max_age=3600,
+        path="/",
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh,
+        httponly=True,
+        secure=settings["secure"],
+        samesite=settings["samesite"],
+        max_age=604800,
+        path="/",
+    )
     return access, refresh
 
 
@@ -193,6 +235,11 @@ class SprintIn(BaseModel):
     goal: Optional[str] = ""
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+
+
+@api_router.get("/health")
+async def health():
+    return {"ok": True}
 
 
 # ----------------------- Auth Endpoints -----------------------
@@ -340,16 +387,17 @@ async def list_users(_: dict = Depends(get_current_user)):
 
 
 @api_router.post("/users")
-async def add_user(payload: AddMemberIn, _: dict = Depends(require_admin)):
+async def add_user(payload: AddMemberIn, user: dict = Depends(get_current_user)):
     email = payload.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already exists")
+    role = payload.role if user.get("role") == "admin" else "member"
     user = {
         "id": str(uuid.uuid4()),
         "email": email,
         "name": payload.name,
         "password_hash": hash_password(payload.password),
-        "role": payload.role,
+        "role": role,
         "avatar_color": _color_for_email(email),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -792,7 +840,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origins=_cors_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
 )

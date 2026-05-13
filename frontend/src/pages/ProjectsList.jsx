@@ -3,16 +3,26 @@ import api from "@/lib/api";
 import { Link } from "react-router-dom";
 import { Plus } from "@phosphor-icons/react";
 import CreateProjectDialog from "@/components/dialogs/CreateProjectDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProjectsList() {
+    const { refresh } = useAuth();
     const [projects, setProjects] = useState([]);
     const [users, setUsers] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
 
     const load = async () => {
-        const [p, u] = await Promise.all([api.get("/projects"), api.get("/users")]);
-        setProjects(p.data);
-        setUsers(u.data);
+        try {
+            const [p, u] = await Promise.all([api.get("/projects"), api.get("/users")]);
+            setProjects(p.data);
+            setUsers(u.data);
+        } catch (e) {
+            if (e?.response?.status === 401) {
+                await refresh?.();
+                return;
+            }
+            throw e;
+        }
     };
     useEffect(() => {
         load();

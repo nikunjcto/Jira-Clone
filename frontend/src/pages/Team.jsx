@@ -35,11 +35,9 @@ export default function Team() {
                     <h1 className="font-display font-black text-5xl tracking-tighter mt-1">Team</h1>
                     <p className="text-[#555] mt-2">{users.length} member{users.length === 1 ? "" : "s"}</p>
                 </div>
-                {user.role === "admin" && (
-                    <button onClick={() => setShowAdd(true)} className="brut-btn" data-variant="primary" data-testid="add-member-btn">
-                        <Plus size={14} weight="bold" /> Add member
-                    </button>
-                )}
+                <button onClick={() => setShowAdd(true)} className="brut-btn" data-variant="primary" data-testid="add-member-btn">
+                    <Plus size={14} weight="bold" /> Add member
+                </button>
             </div>
 
             <div className="mt-8 border border-[#111] bg-white">
@@ -86,6 +84,7 @@ export default function Team() {
 }
 
 function AddMemberDialog({ onClose, onCreated }) {
+    const { user } = useAuth();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -124,12 +123,14 @@ function AddMemberDialog({ onClose, onCreated }) {
                     <Field label="Initial password (≥6)">
                         <input required minLength={6} className="brut-input" value={password} onChange={(e) => setPassword(e.target.value)} data-testid="am-password" />
                     </Field>
-                    <Field label="Role">
-                        <select className="brut-input" value={role} onChange={(e) => setRole(e.target.value)} data-testid="am-role">
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </Field>
+                    {user?.role === "admin" && (
+                        <Field label="Role">
+                            <select className="brut-input" value={role} onChange={(e) => setRole(e.target.value)} data-testid="am-role">
+                                <option value="member">Member</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </Field>
+                    )}
                     {error && <div className="border border-[#E63946] bg-[#fff5f6] p-2 text-sm text-[#E63946]">{error}</div>}
                     <div className="flex gap-2 pt-2">
                         <button type="button" className="brut-btn flex-1 justify-center" data-variant="ghost" onClick={onClose}>Cancel</button>

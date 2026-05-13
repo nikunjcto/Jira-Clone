@@ -3,9 +3,11 @@ import { useParams, NavLink, Outlet } from "react-router-dom";
 import api from "@/lib/api";
 import { Plus, GearSix, Kanban, ListChecks, ListBullets } from "@phosphor-icons/react";
 import CreateIssueDialog from "@/components/dialogs/CreateIssueDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProjectShell() {
     const { id } = useParams();
+    const { refresh } = useAuth();
     const [project, setProject] = useState(null);
     const [users, setUsers] = useState([]);
     const [sprints, setSprints] = useState([]);
@@ -13,24 +15,56 @@ export default function ProjectShell() {
     const [showCreate, setShowCreate] = useState(false);
 
     const loadProject = useCallback(async () => {
-        const { data } = await api.get(`/projects/${id}`);
-        setProject(data);
-    }, [id]);
+        try {
+            const { data } = await api.get(`/projects/${id}`);
+            setProject(data);
+        } catch (e) {
+            if (e?.response?.status === 401) {
+                await refresh?.();
+                return;
+            }
+            throw e;
+        }
+    }, [id, refresh]);
 
     const loadIssues = useCallback(async () => {
-        const { data } = await api.get(`/projects/${id}/issues`);
-        setIssues(data);
-    }, [id]);
+        try {
+            const { data } = await api.get(`/projects/${id}/issues`);
+            setIssues(data);
+        } catch (e) {
+            if (e?.response?.status === 401) {
+                await refresh?.();
+                return;
+            }
+            throw e;
+        }
+    }, [id, refresh]);
 
     const loadSprints = useCallback(async () => {
-        const { data } = await api.get(`/projects/${id}/sprints`);
-        setSprints(data);
-    }, [id]);
+        try {
+            const { data } = await api.get(`/projects/${id}/sprints`);
+            setSprints(data);
+        } catch (e) {
+            if (e?.response?.status === 401) {
+                await refresh?.();
+                return;
+            }
+            throw e;
+        }
+    }, [id, refresh]);
 
     const loadUsers = useCallback(async () => {
-        const { data } = await api.get(`/users`);
-        setUsers(data);
-    }, []);
+        try {
+            const { data } = await api.get(`/users`);
+            setUsers(data);
+        } catch (e) {
+            if (e?.response?.status === 401) {
+                await refresh?.();
+                return;
+            }
+            throw e;
+        }
+    }, [refresh]);
 
     useEffect(() => {
         loadProject();
