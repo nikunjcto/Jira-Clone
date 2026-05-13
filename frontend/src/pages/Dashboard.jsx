@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -11,7 +11,7 @@ export default function Dashboard() {
     const [users, setUsers] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
 
-    const load = async () => {
+    const load = useCallback(async () => {
         try {
             const [p, u] = await Promise.all([api.get("/projects"), api.get("/users")]);
             setProjects(p.data);
@@ -23,11 +23,11 @@ export default function Dashboard() {
             }
             throw e;
         }
-    };
+    }, [refresh]);
 
     useEffect(() => {
         load();
-    }, []);
+    }, [load]);
 
     const totalIssues = projects.reduce((s, p) => s + (p.issue_count || 0), 0);
 

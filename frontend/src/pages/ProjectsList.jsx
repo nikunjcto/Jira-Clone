@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "@/lib/api";
 import { Link } from "react-router-dom";
 import { Plus } from "@phosphor-icons/react";
@@ -11,7 +11,7 @@ export default function ProjectsList() {
     const [users, setUsers] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
 
-    const load = async () => {
+    const load = useCallback(async () => {
         try {
             const [p, u] = await Promise.all([api.get("/projects"), api.get("/users")]);
             setProjects(p.data);
@@ -23,10 +23,10 @@ export default function ProjectsList() {
             }
             throw e;
         }
-    };
+    }, [refresh]);
     useEffect(() => {
         load();
-    }, []);
+    }, [load]);
 
     return (
         <div className="p-8" data-testid="projects-page">
